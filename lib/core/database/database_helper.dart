@@ -38,7 +38,6 @@ class DatabaseHelper {
     await db.execute(DatabaseTables.createCategoriesTable);
   }
 
-// TODO: Add CRUD methods for expenses
 // CREATE - Insert a new expense
   Future<int> insertExpense(Expense expense) async {
     final db = await database;
