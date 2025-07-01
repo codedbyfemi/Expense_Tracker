@@ -6,7 +6,7 @@ import '../../models/expense.dart';
 import '../add_expense/add_expense_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -118,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '\₦${provider.totalBalance.toStringAsFixed(2)}',
+            '₦${provider.totalBalance.toStringAsFixed(2)}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 32,
@@ -237,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '\₦${expense.amount.toStringAsFixed(2)}',
+                            '₦${expense.amount.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -279,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
           '${expense.date.day}/${expense.date.month}/${expense.date.year}',
         ),
         trailing: Text(
-          '\₦${expense.amount.toStringAsFixed(2)}',
+          '₦${expense.amount.toStringAsFixed(2)}',
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 16,
