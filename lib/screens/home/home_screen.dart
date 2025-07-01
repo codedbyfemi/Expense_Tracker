@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../providers/category_provider.dart';
 import '../../providers/expense_provider.dart';
 import '../../models/expense.dart';
+import '../add_expense/add_expense_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -11,12 +13,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+
   @override
   void initState() {
     super.initState();
-    // Load expenses when screen opens
+    print('HomeScreen: initState called'); // Debug print
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('HomeScreen: Loading data...'); // Debug print
       context.read<ExpenseProvider>().loadExpenses();
+      context.read<CategoryProvider>().loadCategories();
+      context.read<CategoryProvider>().debugCategories();
     });
   }
 
@@ -66,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Balance Card
               _buildBalanceCard(expenseProvider),
 
+
               // Expenses List
               Expanded(
                 child: _buildExpensesList(expenseProvider),
@@ -76,10 +83,14 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-
-          _showAddExpenseDialog(context);
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => const AddExpenseScreen(),
+            ),
+          );
         },
-        child: const Icon(Icons.add),
+        backgroundColor: Colors.blue.shade600,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
@@ -107,7 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            '\$${provider.totalBalance.toStringAsFixed(2)}',
+            '\₦${provider.totalBalance.toStringAsFixed(2)}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 32,
@@ -119,26 +130,131 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Expenses list widget
-  Widget _buildExpensesList(ExpenseProvider provider) {
-    if (provider.expenses.isEmpty) {
+  Widget _buildExpensesList(ExpenseProvider expenseProvider) {
+    if (expenseProvider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (expenseProvider.expenses.isEmpty) {
       return const Center(
-        child: Text(
-          'No expenses yet.\nTap + to add your first expense!',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 18,
-            color: Colors.grey,
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'No expenses yet',
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+            Text(
+              'Tap the + button to add your first expense',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
         ),
       );
     }
 
-    return ListView.builder(
-      itemCount: provider.expenses.length,
-      itemBuilder: (context, index) {
-        final expense = provider.expenses[index];
-        return _buildExpenseCard(expense, provider);
+    return Consumer<CategoryProvider>(
+      builder: (context, categoryProvider, child) {
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: expenseProvider.expenses.length,
+          itemBuilder: (context, index) {
+            final expense = expenseProvider.expenses[index];
+            final category = categoryProvider.getCategoryById(expense.categoryId);
+
+            return GestureDetector(
+              onLongPress: () {
+                // Delete expense on long press
+                _showDeleteDialog(context, expense, expenseProvider);
+              },
+              child: Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      // Category Icon
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: category != null
+                              ? Color(int.parse(category.color.replaceFirst('#', '0xFF')))
+                              .withOpacity(0.1)
+                              : Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        child: Center(
+                          child: Text(
+                            category?.icon ?? '📝',
+                            style: const TextStyle(fontSize: 24),
+                          ),
+                        ),
+                      ),
+              
+                      const SizedBox(width: 16),
+              
+                      // Expense Details
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              expense.title,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              category?.name ?? 'Unknown Category',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${expense.date.day}/${expense.date.month}/${expense.date.year}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+              
+                      // Amount
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            '\₦${expense.amount.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              
+              ),
+            );
+          },
+
+        );
       },
     );
   }
@@ -163,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
           '${expense.date.day}/${expense.date.month}/${expense.date.year}',
         ),
         trailing: Text(
-          '\$${expense.amount.toStringAsFixed(2)}',
+          '\₦${expense.amount.toStringAsFixed(2)}',
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 16,
